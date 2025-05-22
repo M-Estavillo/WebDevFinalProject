@@ -36,7 +36,7 @@ let expenseChart = new Chart(expenseChartCtx, {
             tooltip: {
                 callbacks: {
                     label: function(context) {
-                        return `${context.label}: $${context.raw.toFixed(2)}`;
+                        return `${context.label}: ₱${context.raw.toFixed(2)}`;
                     }
                 }
             }
@@ -58,7 +58,7 @@ function updateUI() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${expense.name}</td>
-                <td>$${expense.amount.toFixed(2)}</td>
+                <td>₱${expense.amount.toFixed(2)}</td>
                 <td>${expense.category}</td>
                 <td>${expense.date}</td>
                 <td>
