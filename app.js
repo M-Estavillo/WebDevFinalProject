@@ -7,7 +7,7 @@ const expenseAmount = document.getElementById('expense-amount');
 const expenseCategory = document.getElementById('expense-category');
 const expenseDate = document.getElementById('expense-date');
 
-let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+let expenses = [];
 let editingExpenseId = null;
 let deletingExpenseId = null;
 
@@ -30,21 +30,21 @@ let expenseChart = new Chart(expenseChartCtx, {
     options: {
         responsive: true,
         plugins: {
-            legend: {
-                position: 'top',
-            },
+            legend: { position: 'top' },
             tooltip: {
                 callbacks: {
-                    label: function(context) {
-                        return `${context.label}: ₱${context.raw.toFixed(2)}`;
-                    }
+                    label: context => `${context.label}: ₱${context.raw.toFixed(2)}`
                 }
             }
         }
     }
 });
 
-function updateUI() {
+async function updateUI() {
+    const categoryQuery = categoryFilter.value !== 'All' ? `?category=${categoryFilter.value}` : '';
+    const response = await fetch(`http://localhost:3000/expenses${categoryQuery}`);
+    expenses = await response.json();
+
     expenseTable.innerHTML = '';
     let total = 0;
     let categoryTotals = [0, 0, 0, 0];
@@ -58,20 +58,20 @@ function updateUI() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${expense.name}</td>
-                <td>₱${expense.amount.toFixed(2)}</td>
+                <td>₱${parseFloat(expense.amount).toFixed(2)}</td>
                 <td>${expense.category}</td>
-                <td>${expense.date}</td>
+                <td>${new Date(expense.date).toISOString().split('T')[0]}</td>
                 <td>
                     <button class='edit-btn' onclick='openEditWindow(${expense.id})'>Edit</button>
                     <button class='delete-btn' onclick='openDeleteWindow(${expense.id})'>Delete</button>
                 </td>
             `;
             expenseTable.appendChild(row);
-            total += expense.amount;
+            total += parseFloat(expense.amount);
 
             const categoryIndex = categories.indexOf(expense.category);
             if (categoryIndex !== -1) {
-                categoryTotals[categoryIndex] += expense.amount;
+                categoryTotals[categoryIndex] += parseFloat(expense.amount);
             }
         });
     }
@@ -86,18 +86,14 @@ function updateChart(categoryTotals) {
 }
 
 function checkInputs() {
-    if (expenseName.value.trim() && expenseAmount.value && expenseCategory.value && expenseDate.value) {
-        addExpenseButton.disabled = false;
-    } else {
-        addExpenseButton.disabled = true;
-    }
+    addExpenseButton.disabled = !(expenseName.value.trim() && expenseAmount.value && expenseCategory.value && expenseDate.value);
 }
 
 [expenseName, expenseAmount, expenseCategory, expenseDate].forEach(input => {
     input.addEventListener('input', checkInputs);
 });
 
-addExpenseButton.addEventListener('click', () => {
+addExpenseButton.addEventListener('click', async () => {
     const name = expenseName.value.trim();
     const amount = parseFloat(expenseAmount.value);
     const category = expenseCategory.value;
@@ -108,9 +104,11 @@ addExpenseButton.addEventListener('click', () => {
         return;
     }
 
-    const expense = { id: Date.now(), name, amount, category, date };
-    expenses.push(expense);
-    localStorage.setItem('expenses', JSON.stringify(expenses));
+    await fetch('http://localhost:3000/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, amount, category, date })
+    });
 
     expenseName.value = '';
     expenseAmount.value = '';
@@ -134,7 +132,7 @@ function openEditWindow(id) {
     openWindow('edit-window');
 }
 
-document.getElementById('confirm-edit').addEventListener('click', () => {
+document.getElementById('confirm-edit').addEventListener('click', async () => {
     const name = document.getElementById('edit-expense-name').value.trim();
     const amount = parseFloat(document.getElementById('edit-expense-amount').value);
     const category = document.getElementById('edit-expense-category').value;
@@ -145,13 +143,14 @@ document.getElementById('confirm-edit').addEventListener('click', () => {
         return;
     }
 
-    const index = expenses.findIndex(exp => exp.id === editingExpenseId);
-    if (index > -1) {
-        expenses[index] = { id: editingExpenseId, name, amount, category, date };
-        localStorage.setItem('expenses', JSON.stringify(expenses));
-        updateUI();
-    }
+    await fetch(`http://localhost:3000/expenses/${editingExpenseId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, amount, category, date })
+    });
+
     closeWindow('edit-window');
+    updateUI();
 });
 
 function openDeleteWindow(id) {
@@ -159,11 +158,13 @@ function openDeleteWindow(id) {
     openWindow('delete-window');
 }
 
-document.getElementById('confirm-delete').addEventListener('click', () => {
-    expenses = expenses.filter(exp => exp.id !== deletingExpenseId);
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    updateUI();
+document.getElementById('confirm-delete').addEventListener('click', async () => {
+    await fetch(`http://localhost:3000/expenses/${deletingExpenseId}`, {
+        method: 'DELETE'
+    });
+
     closeWindow('delete-window');
+    updateUI();
 });
 
 function openWindow(windowId) {
@@ -174,15 +175,7 @@ function closeWindow(windowId) {
     document.getElementById(windowId).style.display = 'none';
 }
 
-categoryFilter.addEventListener('change', () => {
-    const filterValue = categoryFilter.value;
-    if (filterValue !== 'All') {
-        expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-        expenses = expenses.filter(exp => exp.category === filterValue);
-    } else {
-        expenses = JSON.parse(localStorage.getItem('expenses')) || [];
-    }
-    updateUI();
-});
+categoryFilter.addEventListener('change', updateUI);
+
 
 updateUI();
