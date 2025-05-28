@@ -21,7 +21,7 @@ The frontend is developed using HTML, CSS, and JavaScript, providing a clean and
 ### **👥 Task Assignment and Team Contribution**
 
 1. 📅 **Planning**:
-Estavillo was in charge of, managing the overall timeline, ensuring all components were working together smoothly, and facilitating communication among members. He lso handled control through GitHub and ensured tasks were evenly distributed and delivered on time.
+Estavillo was in charge of managing the overall timeline, ensuring all components were working together smoothly, and facilitating communication among members. He also handled control through GitHub and ensured tasks were evenly distributed and delivered on time.
 
 2. 🎨 **Frontend**:
 All members contributed to the designing and building of the user interface using HTML, CSS, and JavaScript. Divinagracia integrated pie chart functionality using Chart.js. He also ensured that the UI was more visually pleasing.
